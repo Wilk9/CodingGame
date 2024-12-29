@@ -86,8 +86,6 @@ export default function Level(){
         if(currentPosition.x === levelData.finishPosition.x && currentPosition.y === levelData.finishPosition.y){
             setTimeout(() => {
                 if(level < levels.length){
-                    console.log(level);
-                    console.log(levels.length);
                     setLevel(oldValue => oldValue + 1);
                     setLevelPassed(true);
                 }
