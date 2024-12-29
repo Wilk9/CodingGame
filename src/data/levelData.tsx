@@ -2,11 +2,10 @@ import * as React from 'react';
 
 export type levelData = {
     level: number;
-    numberOfCells: number;
-    numberOfColumns: number;
-    allowedCells: number[];
-    startPosition: number;
-    finishPosition: number;
+    grid: {columns: number, rows: number};
+    allowedCells: {x: number, y: number}[];
+    startPosition: {x: number, y: number};
+    finishPosition: {x: number, y: number};
     instructions: React.JSX.Element;
     regexTests: RegExp[];
     lineTest: number;
@@ -15,35 +14,32 @@ export type levelData = {
 export const levels:levelData[] = [
     {
         level: 1, 
-        numberOfCells: 2, 
-        numberOfColumns: 1, 
-        allowedCells: [0,1], 
-        startPosition: 1, 
-        finishPosition: 0, 
-        instructions: <p>You can move forward, using the <code>moveForward()</code> function.<br/>TIP: Don't forget to add a <code>;</code> after the <code>moveForward()</code> function.</p>,
-        regexTests: [/^moveForward\(\);$/],
+        grid: {columns: 1, rows: 2},
+        allowedCells: [{x: 0, y: 0}, {x: 0, y: 1}], 
+        startPosition: {x: 0, y: 1}, 
+        finishPosition: {x: 0, y: 0}, 
+        instructions: <p>You can move forward by typing <code>move();</code>. <br/>When you type <code>move();</code> you call a function named <code>move</code> and that function executes the move.</p>,
+        regexTests: [/^move\(\);$/],
         lineTest: -1,
     },
     {
         level: 2, 
-        numberOfCells: 3, 
-        numberOfColumns: 1, 
-        allowedCells: [0,1,2], 
-        startPosition: 2, 
-        finishPosition: 0, 
-        instructions: <p>You can move 2 places forward, using the <code>moveForward()</code> function 2 times.<br/>TIP: Don't forget to add a <code>;</code> at the end of each line.</p>,
-        regexTests: [/^moveForward\(\);$/],
+        grid: {columns: 1, rows: 3},
+        allowedCells: [{x: 0, y: 0}, {x: 0, y: 1}, {x: 0, y: 2}], 
+        startPosition: {x: 0, y: 2}, 
+        finishPosition: {x: 0, y: 0}, 
+        instructions: <p>You can move 2 places forward, using the <code>move</code> function 2 times.<br/>TIP: Don't forget to add a <code>;</code> at the end of each line.</p>,
+        regexTests: [/^move\(\);$/],
         lineTest: 2,
     },
     {
         level: 3, 
-        numberOfCells: 3, 
-        numberOfColumns: 1, 
-        allowedCells: [0,1,2], 
-        startPosition: 2, 
-        finishPosition: 0, 
-        instructions: <p>You can also move 2 places forward, using the <code>moveForward()</code> function one time. Use it like this <code>moveForward(2)</code> <br/>TIP: Don't forget to add a <code>;</code> after the function.</p>,
-        regexTests: [/^moveForward\(2\);$/],
+        grid: {columns: 1, rows: 3},
+        allowedCells: [{x: 0, y: 0}, {x: 0, y: 1}, {x: 0, y: 2}],
+        startPosition: {x: 0, y: 2}, 
+        finishPosition: {x: 0, y: 0},  
+        instructions: <p>You can also move 2 places forward, typing the <code>move</code> function one time. <br/>You have to set a value (parameter) in between the parenthesis, for example <code>move(2)</code>.</p>,
+        regexTests: [/^move\(2\);$/],
         lineTest: 1,
     },
 ];
