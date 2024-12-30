@@ -10,12 +10,12 @@
     background-color: transparent;
 }
 
-.grid-item.grid-item-finish {
-    border: 4px solid green;
+.grid-item.grid-item-current-position {
+    border: 4px solid orange;
 }
 
-.grid-item.grid-item-current-position {
-    background-color: orange;
+.grid-item.grid-item-finish {
+    border: 4px solid green;
 }
 
 .grid-item{

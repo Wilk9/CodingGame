@@ -13,12 +13,19 @@ export default function Level(){
     const [levelPassed, setLevelPassed] = useState(false);
     const [hasError, setHasError] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
-    const [submitDisabled, setSubmitDisabled] = useState(false);
-    const [completed, setCompleted] = useState(false);
+    const [codeSubmitted, setCodeSubmitted] = useState(false);
+    const [completedAllLevels, setCompletedAllLevels] = useState(false);
 
     const codeInputRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
+        setCurrentPosition({x: -1, y: -1});
+        setRawCode("");
+        setCodeLines([]);
+        setLevelPassed(false);
+        setCodeSubmitted(false);
+        setCompletedAllLevels(false);
+
         const currentLevel = levels.find(x => x.level === level);
         if(!currentLevel){
             return;
@@ -30,17 +37,20 @@ export default function Level(){
             setCurrentPosition(currentLevel.startPosition);
         }
 
-        setRawCode("");
         if(codeInputRef.current){
             codeInputRef.current.focus();
         }
-    }, [level, completed]);
+    }, [level]);
 
     useEffect(() => {
-        const line = codeLines[0];
+        if(!codeSubmitted){
+            return;
+        }
 
-        if(line){
-            setTimeout(() => {
+        let positionDuringExecution = currentPosition;
+
+        codeLines.forEach(line => {
+            if(line){
                 if(/^move\([0-9]{0,2}\);$/.test(line)){
                     const params = getParams(line);
         
@@ -55,46 +65,27 @@ export default function Level(){
                         }
                     }
         
-                    const moveResult = move(steps, levelData, currentPosition);
+                    const moveResult = move(steps, levelData, positionDuringExecution);
                     if(!moveResult.valid){
                         setHasError(true);
                         setErrorMessage("You can't move there.");
         
                         return;
                     }
-
-                    setCurrentPosition(moveResult.result);
+    
+                    positionDuringExecution = moveResult.result;
                 }
                 else{
                     setHasError(true);
                     setErrorMessage("Invalid code line found: " + line + ";");
-
+    
                     return;
                 }
-                
-                const newCodeLines = codeLines.slice(1);
-                setCodeLines(newCodeLines);             
-            }, 500);
-        }
-    }, [codeLines]);
+            }
+        });
 
-    useEffect(() => {
-        if(currentPosition.x === levelData.startPosition.x && currentPosition.y === levelData.startPosition.y){
-            return;
-        }
-
-        if(currentPosition.x === levelData.finishPosition.x && currentPosition.y === levelData.finishPosition.y){
-            setTimeout(() => {
-                if(level < levels.length){
-                    setLevel(oldValue => oldValue + 1);
-                    setLevelPassed(true);
-                }
-                else{
-                    setCompleted(true);
-                }
-            }, 500);
-        }
-    }, [currentPosition]);
+        setCurrentPosition(positionDuringExecution);
+    }, [codeLines, codeSubmitted]);
 
     function getParams(line: string): string[] {
         const matches = line.match(/\(([^)]+)\)/g);
@@ -114,58 +105,77 @@ export default function Level(){
         return params;
     }
     
-    if(completed){
+    let leftContent = <>
+        <h1>Level {level}</h1>
+        {levelData.instructions}
+        <textarea ref={codeInputRef} style={{display: "block", width: "100%", resize: "none"}} rows={levelData.codeLines + 3} defaultValue={rawCode} disabled={codeSubmitted}></textarea>
+        <button onClick={submitCodeLines} disabled={codeSubmitted}>Submit</button>
+    </>;
+
+    if(completedAllLevels){
         const buttons = levels.map((x: levelData) => (<button key={x.level} onClick={() => goToLevel(x.level)}>Start level {x.level}</button>));
-        return <div><h1>You've completed all the levels!!!</h1>
+        leftContent = <div><h1>You've completed all the levels!!!</h1>
             {buttons}
         </div>
     }
 
     if(hasError){
-        return <div>
-            <h1>{errorMessage}</h1>
+        leftContent = <div>
+            <h1>Level {level}</h1>
+            <h3>{errorMessage}</h3>
             <button onClick={retryLevel}>Retry level {level}</button>
         </div>
     }
 
     if(levelPassed){
-        return <div><h1>Level passed!</h1>{levelData ? <button onClick={nextLevel}>Go to level {level}</button> : null}</div>
+        leftContent = <div><h1>Level {level} passed!</h1><button onClick={nextLevel}>Go to level {level + 1}</button></div>
     }
 
     return (
         <>
-            <h1>Level {level}</h1>
             <div className="flex-container">
-                <div className="flex-item">
-                    <h2>Maze</h2>
-                    <GameGrid levelData={levelData} currentPosition={currentPosition} />
-                </div>
                 <div className="flex-item">	
-                    <h2>Code</h2>
-                    {levelData.instructions}
-                    <textarea ref={codeInputRef} style={{display: "block", width: "100%", resize: "none"}} rows={20} defaultValue={rawCode}></textarea>
-                    <button onClick={submitCodeLines} disabled={submitDisabled}>Submit</button>
+                    {leftContent}
+                </div>
+                <div className="flex-item">
+                    <GameGrid levelData={levelData} currentPosition={currentPosition} codeSubmitted={codeSubmitted} onFinishingAnimation={() => onFinishingAnimation(level)} />
                 </div>
             </div>
         </>
     )
 
+    function onFinishingAnimation(finishedLevel: number){
+        if(!codeSubmitted || finishedLevel !== level){
+            return;
+        }
+
+        if(currentPosition.x === levelData.startPosition.x && currentPosition.y === levelData.startPosition.y){
+            return;
+        }
+
+        if(currentPosition.x === levelData.finishPosition.x && currentPosition.y === levelData.finishPosition.y){
+            setCodeSubmitted(false);
+            if(finishedLevel < levels.length){
+                setLevelPassed(true);
+            }
+            else{
+                setCompletedAllLevels(true);
+            }
+        }
+    }
+
     function nextLevel(){
-        setLevelPassed(false);
-        setSubmitDisabled(false);
+        setLevel(oldValue => oldValue + 1);
     }
 
     function retryLevel(){
         setHasError(false);
         setErrorMessage("");
-        setSubmitDisabled(false);
+        setCodeSubmitted(false);
     }
 
     function goToLevel(level: number){
-        setLevelPassed(false);
-        setSubmitDisabled(false);
         setLevel(level);
-        setCompleted(false);
     }
 
     function submitCodeLines(){
@@ -183,10 +193,10 @@ export default function Level(){
         codeLines = codeLines.filter(n => n && n.length > 0 && n !== ";" && n !== "\n" && n !== "\r" && n !== "\r\n");
         codeLines = codeLines.map(x => x.trim() + ";");
 
-        if(levelData.lineTest > -1 && levelData.lineTest !== codeLines.length){
+        if(levelData.codeLines > -1 && levelData.codeLines !== codeLines.length){
             setHasError(true);
 
-            if(codeLines.length - 1 > levelData.lineTest){
+            if(codeLines.length - 1 > levelData.codeLines){
                 setErrorMessage("Read the instructions again. Your code has to many lines.");
             }
             else{
@@ -212,6 +222,6 @@ export default function Level(){
         }
 
         setCodeLines(codeLines);
-        setSubmitDisabled(true);
+        setCodeSubmitted(true);
     }
 }
