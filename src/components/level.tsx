@@ -3,6 +3,9 @@ import GameGrid from "./gameGrid";
 import "./level.css";
 import { levels, levelData } from "../data/levelData";
 import move from "../gameMoves/move";
+import ErrorMessage from "./errorMessage";
+import NextLevel from "./nextLevel";
+import CompletedGame from "./completedGame";
 
 export default function Level(){
     const [level, setLevel] = useState(1);
@@ -15,6 +18,7 @@ export default function Level(){
     const [errorMessage, setErrorMessage] = useState("");
     const [codeSubmitted, setCodeSubmitted] = useState(false);
     const [completedAllLevels, setCompletedAllLevels] = useState(false);
+    const [animationIsRunning, setAnimationIsRunning] = useState(false);
 
     const codeInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -43,7 +47,7 @@ export default function Level(){
     }, [level]);
 
     useEffect(() => {
-        if(!codeSubmitted){
+        if(!codeSubmitted || animationIsRunning){
             return;
         }
 
@@ -85,6 +89,7 @@ export default function Level(){
         });
 
         setCurrentPosition(positionDuringExecution);
+        setAnimationIsRunning(true);
     }, [codeLines, codeSubmitted]);
 
     function getParams(line: string): string[] {
@@ -113,22 +118,15 @@ export default function Level(){
     </>;
 
     if(completedAllLevels){
-        const buttons = levels.map((x: levelData) => (<button key={x.level} onClick={() => goToLevel(x.level)}>Start level {x.level}</button>));
-        leftContent = <div><h1>You've completed all the levels!!!</h1>
-            {buttons}
-        </div>
+        leftContent = <CompletedGame onGoToLevel={onGoToLevel} />
     }
 
     if(hasError){
-        leftContent = <div>
-            <h1>Level {level}</h1>
-            <h3>{errorMessage}</h3>
-            <button onClick={retryLevel}>Retry level {level}</button>
-        </div>
+        leftContent = <ErrorMessage level={level} errorMessage={errorMessage} onRetryLevel={onRetryLevel} />
     }
 
     if(levelPassed){
-        leftContent = <div><h1>Level {level} passed!</h1><button onClick={nextLevel}>Go to level {level + 1}</button></div>
+        leftContent = <NextLevel level={level} onNextLevel={onNextLevel} />
     }
 
     return (
@@ -145,6 +143,8 @@ export default function Level(){
     )
 
     function onFinishingAnimation(finishedLevel: number){
+        setAnimationIsRunning(false);
+
         if(!codeSubmitted || finishedLevel !== level){
             return;
         }
@@ -164,17 +164,17 @@ export default function Level(){
         }
     }
 
-    function nextLevel(){
+    function onNextLevel(){
         setLevel(oldValue => oldValue + 1);
     }
 
-    function retryLevel(){
+    function onRetryLevel(){
         setHasError(false);
         setErrorMessage("");
         setCodeSubmitted(false);
     }
 
-    function goToLevel(level: number){
+    function onGoToLevel(level: number){
         setLevel(level);
     }
 
