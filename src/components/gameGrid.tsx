@@ -43,7 +43,9 @@ export default function GameGrid(props: GameGridProps){
                 const interval = setInterval(() => {
                     if(isMovedToDestination(currentX, currentY, destinationX, destinationY)){
                         clearInterval(interval);
-                        props.onFinishingAnimation();
+                        setTimeout(() => {
+                            props.onFinishingAnimation();
+                        }, 500);
                     }
 
                     currentX -= stepsX;

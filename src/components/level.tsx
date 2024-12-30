@@ -1,50 +1,25 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import GameGrid from "./gameGrid";
 import "./level.css";
-import { levels, levelData } from "../data/levelData";
+import { levels } from "../data/levelData";
 import move from "../gameMoves/move";
 import ErrorMessage from "./errorMessage";
-import NextLevel from "./nextLevel";
-import CompletedGame from "./completedGame";
+import GameInput from "./gameInput";
 
-export default function Level(){
-    const [level, setLevel] = useState(1);
-    const [levelData, setLevelData] = useState<levelData>(levels[0]);
-    const [currentPosition, setCurrentPosition] = useState({x: -1, y: -1});
-    const [rawCode, setRawCode] = useState("");
+type LevelProps = {
+    level: number;
+    onCompleted: () => void;
+}
+
+export default function Level(props: LevelProps){
+    const levelData = levels[props.level - 1];
+
+    const [currentPosition, setCurrentPosition] = useState({x: levelData.startPosition.x, y: levelData.startPosition.y});
     const [codeLines, setCodeLines] = useState<string[]>([]);
-    const [levelPassed, setLevelPassed] = useState(false);
     const [hasError, setHasError] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [codeSubmitted, setCodeSubmitted] = useState(false);
-    const [completedAllLevels, setCompletedAllLevels] = useState(false);
     const [animationIsRunning, setAnimationIsRunning] = useState(false);
-
-    const codeInputRef = useRef<HTMLTextAreaElement>(null);
-
-    useEffect(() => {
-        setCurrentPosition({x: -1, y: -1});
-        setRawCode("");
-        setCodeLines([]);
-        setLevelPassed(false);
-        setCodeSubmitted(false);
-        setCompletedAllLevels(false);
-
-        const currentLevel = levels.find(x => x.level === level);
-        if(!currentLevel){
-            return;
-        }
-
-        setLevelData(currentLevel);
-
-        if(currentLevel){
-            setCurrentPosition(currentLevel.startPosition);
-        }
-
-        if(codeInputRef.current){
-            codeInputRef.current.focus();
-        }
-    }, [level]);
 
     useEffect(() => {
         if(!codeSubmitted || animationIsRunning){
@@ -109,85 +84,14 @@ export default function Level(){
 
         return params;
     }
-    
-    let leftContent = <>
-        <h1>Level {level}</h1>
-        {levelData.instructions}
-        <textarea ref={codeInputRef} style={{display: "block", width: "100%", resize: "none"}} rows={levelData.codeLines + 3} defaultValue={rawCode} disabled={codeSubmitted}></textarea>
-        <button onClick={submitCodeLines} disabled={codeSubmitted}>Submit</button>
-    </>;
 
-    if(completedAllLevels){
-        leftContent = <CompletedGame onGoToLevel={onGoToLevel} />
-    }
-
-    if(hasError){
-        leftContent = <ErrorMessage level={level} errorMessage={errorMessage} onRetryLevel={onRetryLevel} />
-    }
-
-    if(levelPassed){
-        leftContent = <NextLevel level={level} onNextLevel={onNextLevel} />
-    }
-
-    return (
-        <>
-            <div className="flex-container">
-                <div className="flex-item">	
-                    {leftContent}
-                </div>
-                <div className="flex-item">
-                    <GameGrid levelData={levelData} currentPosition={currentPosition} codeSubmitted={codeSubmitted} onFinishingAnimation={() => onFinishingAnimation(level)} />
-                </div>
-            </div>
-        </>
-    )
-
-    function onFinishingAnimation(finishedLevel: number){
-        setAnimationIsRunning(false);
-
-        if(!codeSubmitted || finishedLevel !== level){
-            return;
-        }
-
-        if(currentPosition.x === levelData.startPosition.x && currentPosition.y === levelData.startPosition.y){
-            return;
-        }
-
-        if(currentPosition.x === levelData.finishPosition.x && currentPosition.y === levelData.finishPosition.y){
-            setCodeSubmitted(false);
-            if(finishedLevel < levels.length){
-                setLevelPassed(true);
-            }
-            else{
-                setCompletedAllLevels(true);
-            }
-        }
-    }
-
-    function onNextLevel(){
-        setLevel(oldValue => oldValue + 1);
-    }
-
-    function onRetryLevel(){
-        setHasError(false);
-        setErrorMessage("");
-        setCodeSubmitted(false);
-    }
-
-    function onGoToLevel(level: number){
-        setLevel(level);
-    }
-
-    function submitCodeLines(){
-        const code = codeInputRef.current?.value;
+    const onSubmitCodeLines = (code: string | undefined) => {
         if(!code){
             setHasError(true);
             setErrorMessage("You need to provide code. Read the instructions to see how to write the code.");
 
             return;
         }
-
-        setRawCode(code);
 
         let codeLines = code.split(/(\r\n|\n|\r|;)/gm);
         codeLines = codeLines.filter(n => n && n.length > 0 && n !== ";" && n !== "\n" && n !== "\r" && n !== "\r\n");
@@ -223,5 +127,36 @@ export default function Level(){
 
         setCodeLines(codeLines);
         setCodeSubmitted(true);
+    }
+    
+    let leftContent = <GameInput level={props.level} levelData={levelData} codeSubmitted={codeSubmitted} onSubmitCodeLines={onSubmitCodeLines} />;
+
+    if(hasError){
+        leftContent = <ErrorMessage level={props.level} errorMessage={errorMessage} onRetryLevel={onRetryLevel} />
+    }
+
+    return (
+        <div className="flex-container">
+            <div className="flex-item">	
+                {leftContent}
+            </div>
+            <div className="flex-item">
+                <GameGrid levelData={levelData} currentPosition={currentPosition} codeSubmitted={codeSubmitted} onFinishingAnimation={onFinishingAnimation} />
+            </div>
+        </div>
+    )
+
+    function onFinishingAnimation(){
+        setAnimationIsRunning(false);
+
+        if(currentPosition.x === levelData.finishPosition.x && currentPosition.y === levelData.finishPosition.y){
+            props.onCompleted();
+        }
+    }
+
+    function onRetryLevel(){
+        setHasError(false);
+        setErrorMessage("");
+        setCodeSubmitted(false);
     }
 }
