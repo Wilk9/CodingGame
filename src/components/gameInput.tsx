@@ -1,49 +1,112 @@
 import { useEffect, useRef, useState } from "react";
 import { levelData } from "../data/levelData";
+import ErrorMessage from "./errorMessage";
 
-type GameInputProps = {
-    level: number;
-    levelData: levelData;
-    codeSubmitted: boolean;
-    onSubmitCodeLines: (code: string | undefined) => void;
-}
+interface GameInputProps {
+  level: number;
+  levelData: levelData;
+  hasError: boolean;
+  errorMessage: string | null;
+  onRetryLevel: () => void;
+  setSubmittedCode: (submittedCode: string[]) => void;
+};
 
-export default function GameInput(props: GameInputProps){
-    const [rawCode, setRawCode] = useState("");
-        
-    const codeInputRef = useRef<HTMLTextAreaElement>(null);
+export default function GameInput(props: GameInputProps) {
+  const [rawCode, setRawCode] = useState("");
+  const [hasError, setHasError] = useState(props.hasError);
+  const [errorMessage, setErrorMessage] = useState(props.errorMessage);
+  const [codeSubmitted, setCodeSubmitted] = useState(false);
 
+  const codeInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const onSubmitCodeLines = (code: string | undefined) => {
+    if (!code) {
+      setHasError(true);
+      setErrorMessage("You need to provide code. Read the instructions to see how to write the code.");
+
+      return;
+    }
+
+    let codeLines = code.split(/(\r\n|\n|\r|;)/gm);
+    codeLines = codeLines.filter((n) => n && n.length > 0 && n !== ";" && n !== "\n" && n !== "\r" && n !== "\r\n");
+    codeLines = codeLines.map((x) => x.trim() + ";");
+
+    if (props.levelData.codeLines > -1 && props.levelData.codeLines !== codeLines.length) {
+      setHasError(true);
+
+      if (codeLines.length - 1 > props.levelData.codeLines) {
+        setErrorMessage("Read the instructions again. Your code is missing lines.");
+      } else {
+        setErrorMessage("Read the instructions again. Your code has to many lines.");
+      }
+
+      return;
+    }
+
+    let error = false;
+    codeLines.forEach((line) => {
+      if (!props.levelData.regexTests.some((x) => x.test(line))) {
+        error = true;
+        setHasError(true);
+        setErrorMessage("Read the instructions again. Your code doesn't folow the instructions.");
+
+        return;
+      }
+    });
+
+    if (error) {
+      return;
+    }
+
+    props.setSubmittedCode(codeLines);
+    setCodeSubmitted(true);
+  };
+
+  useEffect(() => {
     const handleSubmit = (e: KeyboardEvent) => {
-        if (e.ctrlKey && e.key === "Enter") {
-            if(codeInputRef.current){
-                e.preventDefault();
-                props.onSubmitCodeLines(codeInputRef.current.value);
-            }
+      if (e.ctrlKey && e.key === "Enter") {
+        if (codeInputRef.current) {
+          e.preventDefault();
+          onSubmitCodeLines(codeInputRef.current.value);
         }
+      }
+    };
+
+    if (codeInputRef.current) {
+      codeInputRef.current.focus();
     }
 
-    useEffect(() => {
-        if(codeInputRef.current){
-            codeInputRef.current.focus();
-        }
+    document.addEventListener("keydown", handleSubmit);
 
-        document.addEventListener ("keydown", handleSubmit );
+    return () => {
+      document.removeEventListener("keydown", handleSubmit);
+    };
+  }, [props]);
 
-        return () => { document.removeEventListener ("keydown", handleSubmit)};
-    }, []);
-
-    return (
+  return (
     <>
-        <h1>Level {props.level}</h1>
-        {props.levelData.instructions}
-        <textarea ref={codeInputRef} style={{display: "block", width: "100%", resize: "none"}} rows={props.levelData.codeLines + 3} defaultValue={rawCode} disabled={props.codeSubmitted}></textarea>
-        <button onClick={onSubmit} disabled={props.codeSubmitted}>Submit</button>
-    </>);
+      <h1>Level {props.level}</h1>
+      {props.levelData.instructions}
 
-    function onSubmit(){
-        if(codeInputRef.current){
-            setRawCode(codeInputRef.current.value);
-            props.onSubmitCodeLines(codeInputRef.current.value);
-        }
+      {hasError ? <ErrorMessage level={props.level} errorMessage={errorMessage || "An error has occurred."} onRetryLevel={props.onRetryLevel} /> :  <>
+      <textarea
+        ref={codeInputRef}
+        style={{ display: "block", width: "100%", resize: "none" }}
+        rows={props.levelData.codeLines + 3}
+        defaultValue={rawCode}
+        disabled={codeSubmitted}
+      ></textarea>
+      <button onClick={onSubmit} disabled={codeSubmitted}>
+        Submit
+      </button>
+      </>}
+    </>
+  );
+
+  function onSubmit() {
+    if (codeInputRef.current) {
+      setRawCode(codeInputRef.current.value);
+      onSubmitCodeLines(codeInputRef.current.value);
     }
+  }
 }

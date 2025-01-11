@@ -1,162 +1,196 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import GameGrid from "./gameGrid";
 import "./level.css";
 import { levels } from "../data/levelData";
 import move from "../gameMoves/move";
-import ErrorMessage from "./errorMessage";
 import GameInput from "./gameInput";
 
-type LevelProps = {
-    level: number;
-    onCompleted: () => void;
-}
+interface LevelProps {
+  level: number;
+  onCompleted: () => void;
+};
 
-export default function Level(props: LevelProps){
-    const levelData = levels[props.level - 1];
+export default function Level(props: LevelProps) {
+  const levelData = useMemo(() => {
+    return levels[props.level - 1];
+  }, [props.level]);
 
-    const [currentPosition, setCurrentPosition] = useState({x: levelData.startPosition.x, y: levelData.startPosition.y});
-    const [codeLines, setCodeLines] = useState<string[]>([]);
-    const [hasError, setHasError] = useState(false);
-    const [errorMessage, setErrorMessage] = useState("");
-    const [codeSubmitted, setCodeSubmitted] = useState(false);
-    const [animationIsRunning, setAnimationIsRunning] = useState(false);
+  const [currentPosition, setCurrentPosition] = useState({
+    x: levelData.startPosition.x,
+    y: levelData.startPosition.y,
+  });
+  const [codeLines, setCodeLines] = useState<string[]>([]);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [codeSubmitted, setCodeSubmitted] = useState(false);
+  const [animationIsRunning, setAnimationIsRunning] = useState(false);
 
-    useEffect(() => {
-        if(!codeSubmitted || animationIsRunning){
-            return;
-        }
+  const getParams = useCallback((line: string): string[] => {
+    const matches = line.match(/\(([^)]+)\)/g);
 
-        let positionDuringExecution = currentPosition;
+    let paramString = undefined;
+    let params: string[] = [];
+    if (matches && matches.length > 0) {
+      paramString = matches[0];
+      paramString = paramString.replace(/[()]/g, "");
 
-        codeLines.forEach(line => {
-            if(line){
-                if(/^move\([0-9]{0,2}\);$/.test(line)){
-                    const params = getParams(line);
-        
-                    let steps = 1;
-                    if(params.length > 0){
-                        steps = Number(params[0]);
-                        if(isNaN(steps)){
-                            setHasError(true);
-                            setErrorMessage("You need to provide a number as parameter");
-        
-                            return;
-                        }
-                    }
-        
-                    const moveResult = move(steps, levelData, positionDuringExecution);
-                    if(!moveResult.valid){
-                        setHasError(true);
-                        setErrorMessage("You can't move there.");
-        
-                        return;
-                    }
-    
-                    positionDuringExecution = moveResult.result;
-                }
-                else{
-                    setHasError(true);
-                    setErrorMessage("Invalid code line found: " + line + ";");
-    
-                    return;
-                }
-            }
+      paramString = paramString.trim();
+      if (paramString.length > 0) {
+        params = paramString.split(",");
+      }
+    }
+
+    return params;
+  }, []);
+
+  const getSteps = useCallback((params: string[]) => {
+    if (params.length == 0) {
+      return 1;
+    }
+
+    const steps = Number(params[0]);
+    if (!isNaN(steps) && steps > 0) {
+      return steps;
+    }
+
+    setHasError(true);
+    setErrorMessage("You need to provide a number as parameter");
+
+    return -1;
+  }, []);
+
+  const movePlayer = useCallback(
+    (
+      line: string,
+      position: { x: number; y: number },
+      actions: {
+        type: "start" | "move";
+        steps: number;
+        position: { x: number; y: number };
+        hasError: boolean;
+        errorMessage: string | null;
+      }[],
+    ) => {
+      const params = getParams(line);
+      const steps = getSteps(params);
+
+      const moveResult = move(steps, levelData, position);
+      if (!moveResult.valid) {
+        actions.push({
+          type: "move",
+          steps: steps,
+          position: moveResult.result,
+          hasError: true,
+          errorMessage: "You can't move there.",
         });
 
-        setCurrentPosition(positionDuringExecution);
+        return;
+      }
+
+      let error = false;
+      let errorMessage: string | null = null;
+      const errorAction = actions.find((x) => x.hasError);
+      if (errorAction) {
+        error = true;
+        errorMessage = errorAction.errorMessage;
+      }
+
+      actions.push({
+        type: "move",
+        steps: steps,
+        position: moveResult.result,
+        hasError: error,
+        errorMessage: errorMessage,
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!codeSubmitted || animationIsRunning) {
+      return;
+    }
+
+    const executingCodeLines = codeLines;
+    const actions: {
+      type: "start" | "move";
+      steps: number;
+      position: { x: number; y: number };
+      hasError: boolean;
+      errorMessage: string | null;
+    }[] = [{ type: "start", steps: 0, position: currentPosition, hasError: false, errorMessage: null }];
+
+    executingCodeLines.forEach((line) => {
+      if (line) {
+        if (/^move\([0-9]{0,2}\);$/.test(line)) {
+          movePlayer(line, actions[actions.length - 1].position, actions);
+
+          return;
+        }
+
+        setHasError(true);
+        setErrorMessage("Invalid code line found: " + line + ";");
+
+        return;
+      }
+    });
+
+    actions.forEach((action, i) => {
+      if (action.type == "move") {
+        if (action.hasError) {
+          setHasError(true);
+          setErrorMessage(action.errorMessage || "An error occurred.");
+        }
+
+        if (actions[i + 1] !== undefined && actions[i + 1].type == "move") {
+          return;
+        }
+
+        setCurrentPosition(action.position);
         setAnimationIsRunning(true);
-    }, [codeLines, codeSubmitted]);
+      }
+    });
+  }, [codeLines, codeSubmitted, levelData, getParams, getSteps]);
 
-    function getParams(line: string): string[] {
-        const matches = line.match(/\(([^)]+)\)/g);
+  function setSubmittedCode(codeLines: string[]) {
+    setCodeLines(codeLines);
+    setCodeSubmitted(true);
+  }
 
-        let paramString = undefined;
-        let params: string[] = [];
-        if (matches && matches.length > 0) {
-            paramString = matches[0];
-            paramString = paramString.replace(/[()]/g, '');
+  return (
+    <div className="flex-container">
+      <div className="flex-item">
+          <GameInput
+            level={props.level}
+            levelData={levelData}
+            hasError={hasError}
+            errorMessage={errorMessage}
+            onRetryLevel={onRetryLevel}
+            setSubmittedCode={setSubmittedCode}
+          />
+      </div>
+      <div className="flex-item">
+        <GameGrid
+          levelData={levelData}
+          currentPosition={currentPosition}
+          codeSubmitted={codeSubmitted}
+          onFinishingAnimation={onFinishingAnimation}
+        />
+      </div>
+    </div>
+  );
 
-            paramString = paramString.trim();
-            if(paramString.length > 0){
-                params = paramString.split(",");
-            }
-        }
+  function onFinishingAnimation() {
+    setAnimationIsRunning(false);
 
-        return params;
+    if (currentPosition.x === levelData.finishPosition.x && currentPosition.y === levelData.finishPosition.y) {
+      props.onCompleted();
     }
+  }
 
-    const onSubmitCodeLines = (code: string | undefined) => {
-        if(!code){
-            setHasError(true);
-            setErrorMessage("You need to provide code. Read the instructions to see how to write the code.");
-
-            return;
-        }
-
-        let codeLines = code.split(/(\r\n|\n|\r|;)/gm);
-        codeLines = codeLines.filter(n => n && n.length > 0 && n !== ";" && n !== "\n" && n !== "\r" && n !== "\r\n");
-        codeLines = codeLines.map(x => x.trim() + ";");
-
-        if(levelData.codeLines > -1 && levelData.codeLines !== codeLines.length){
-            setHasError(true);
-
-            if(codeLines.length - 1 > levelData.codeLines){
-                setErrorMessage("Read the instructions again. Your code has to many lines.");
-            }
-            else{
-                setErrorMessage("Read the instructions again. Your code is missing lines.");
-            }
-
-            return;
-        }
-
-        let error = false;
-        codeLines.forEach(line => {
-            if(!levelData.regexTests.some(x => x.test(line))){
-                error = true;
-                setHasError(true);
-                setErrorMessage("Read the instructions again. Your code doesn't folow the instructions.");
-
-                return;
-            }
-        });
-
-        if(error){
-            return;
-        }
-
-        setCodeLines(codeLines);
-        setCodeSubmitted(true);
-    }
-    
-    let leftContent = <GameInput level={props.level} levelData={levelData} codeSubmitted={codeSubmitted} onSubmitCodeLines={onSubmitCodeLines} />;
-
-    if(hasError){
-        leftContent = <ErrorMessage level={props.level} errorMessage={errorMessage} onRetryLevel={onRetryLevel} />
-    }
-
-    return (
-        <div className="flex-container">
-            <div className="flex-item">	
-                {leftContent}
-            </div>
-            <div className="flex-item">
-                <GameGrid levelData={levelData} currentPosition={currentPosition} codeSubmitted={codeSubmitted} onFinishingAnimation={onFinishingAnimation} />
-            </div>
-        </div>
-    )
-
-    function onFinishingAnimation(){
-        setAnimationIsRunning(false);
-
-        if(currentPosition.x === levelData.finishPosition.x && currentPosition.y === levelData.finishPosition.y){
-            props.onCompleted();
-        }
-    }
-
-    function onRetryLevel(){
-        setHasError(false);
-        setErrorMessage("");
-        setCodeSubmitted(false);
-    }
+  function onRetryLevel() {
+    setHasError(false);
+    setErrorMessage("");
+    setCodeSubmitted(false);
+  }
 }

@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import './App.css'
-import Level from './components/level'
-import Intro from './components/intro';
-import CompletedGame from './components/completedGame';
+import { useState } from "react";
+import "./App.css";
+import Level from "./components/level";
+import Intro from "./components/intro";
+import CompletedGame from "./components/completedGame";
 import { levels } from "./data/levelData";
-import CompletedLevel from './components/completedLevel';
+import CompletedLevel from "./components/completedLevel";
 
 export default function App() {
   const [level, setLevel] = useState(1);
@@ -14,46 +14,37 @@ export default function App() {
 
   const onStart = () => {
     setHasStarted(true);
-  }
+  };
 
   const onCompletedLevel = () => {
-    if(level < levels.length){
+    if (level < levels.length) {
       setLevelChanged(true);
-    }
-    else{
+    } else {
       setHasCompletedGame(true);
     }
-  }
+  };
 
   const onStartNewLevel = () => {
     setLevelChanged(false);
-    setLevel( level + 1);
-  }
+    setLevel(level + 1);
+  };
 
-  const onRetryLevel = (level: number) =>{
+  const onRetryLevel = (level: number) => {
     setHasCompletedGame(false);
     setLevel(level);
+  };
+
+  if (!hasStarted) {
+    return <Intro onStart={onStart} />;
   }
 
-  if(!hasStarted){
-    return ( 
-      <Intro onStart={onStart}/>
-    )
+  if (levelChanged) {
+    return <CompletedLevel level={level} onStartNewLevel={onStartNewLevel} />;
   }
 
-  if(levelChanged){
-    return (
-      <CompletedLevel level={level} onStartNewLevel={onStartNewLevel} />
-    )
+  if (!hasCompletedGame) {
+    return <Level level={level} onCompleted={onCompletedLevel} />;
   }
 
-  if(!hasCompletedGame){
-    return (
-      <Level level={level} onCompleted={onCompletedLevel} />
-    )
-  }
-
-  return (
-    <CompletedGame onRetryLevel={onRetryLevel} />
-  )
+  return <CompletedGame onRetryLevel={onRetryLevel} />;
 }
