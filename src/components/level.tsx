@@ -8,7 +8,7 @@ import GameInput from "./gameInput";
 interface LevelProps {
   level: number;
   onCompleted: () => void;
-};
+}
 
 export default function Level(props: LevelProps) {
   const levelData = useMemo(() => {
@@ -160,14 +160,13 @@ export default function Level(props: LevelProps) {
   return (
     <div className="flex-container">
       <div className="flex-item">
-          <GameInput
-            level={props.level}
-            levelData={levelData}
-            hasError={hasError}
-            errorMessage={errorMessage}
-            onRetryLevel={onRetryLevel}
-            setSubmittedCode={setSubmittedCode}
-          />
+        <GameInput
+          level={props.level}
+          levelData={levelData}
+          hasError={hasError}
+          errorMessage={errorMessage}
+          setSubmittedCode={setSubmittedCode}
+        />
       </div>
       <div className="flex-item">
         <GameGrid
@@ -186,11 +185,5 @@ export default function Level(props: LevelProps) {
     if (currentPosition.x === levelData.finishPosition.x && currentPosition.y === levelData.finishPosition.y) {
       props.onCompleted();
     }
-  }
-
-  function onRetryLevel() {
-    setHasError(false);
-    setErrorMessage("");
-    setCodeSubmitted(false);
   }
 }

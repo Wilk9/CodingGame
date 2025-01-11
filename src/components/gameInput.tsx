@@ -7,9 +7,8 @@ interface GameInputProps {
   levelData: levelData;
   hasError: boolean;
   errorMessage: string | null;
-  onRetryLevel: () => void;
   setSubmittedCode: (submittedCode: string[]) => void;
-};
+}
 
 export default function GameInput(props: GameInputProps) {
   const [rawCode, setRawCode] = useState("");
@@ -20,6 +19,7 @@ export default function GameInput(props: GameInputProps) {
   const codeInputRef = useRef<HTMLTextAreaElement>(null);
 
   const onSubmitCodeLines = (code: string | undefined) => {
+    setCodeSubmitted(true);
     if (!code) {
       setHasError(true);
       setErrorMessage("You need to provide code. Read the instructions to see how to write the code.");
@@ -59,7 +59,6 @@ export default function GameInput(props: GameInputProps) {
     }
 
     props.setSubmittedCode(codeLines);
-    setCodeSubmitted(true);
   };
 
   useEffect(() => {
@@ -87,8 +86,6 @@ export default function GameInput(props: GameInputProps) {
     <>
       <h1>Level {props.level}</h1>
       {props.levelData.instructions}
-
-      {hasError ? <ErrorMessage level={props.level} errorMessage={errorMessage || "An error has occurred."} onRetryLevel={props.onRetryLevel} /> :  <>
       <textarea
         ref={codeInputRef}
         style={{ display: "block", width: "100%", resize: "none" }}
@@ -96,12 +93,25 @@ export default function GameInput(props: GameInputProps) {
         defaultValue={rawCode}
         disabled={codeSubmitted}
       ></textarea>
-      <button onClick={onSubmit} disabled={codeSubmitted}>
-        Submit
-      </button>
-      </>}
+      {hasError ? (
+        <ErrorMessage
+          level={props.level}
+          errorMessage={errorMessage || "An error has occurred."}
+          onRetryLevel={onRetryLevel}
+        />
+      ) : (
+        <button onClick={onSubmit} disabled={codeSubmitted}>
+          Submit
+        </button>
+      )}
     </>
   );
+
+  function onRetryLevel() {
+    setHasError(false);
+    setErrorMessage("");
+    setCodeSubmitted(false);
+  }
 
   function onSubmit() {
     if (codeInputRef.current) {
