@@ -7,8 +7,7 @@ export type levelData = {
   startPosition: { x: number; y: number };
   finishPosition: { x: number; y: number };
   instructions: React.JSX.Element;
-  regexTests: RegExp[];
-  codeLines: number;
+  completedCode: string;
 };
 
 export const levels: levelData[] = [
@@ -28,8 +27,7 @@ export const levels: levelData[] = [
         move.
       </p>
     ),
-    regexTests: [/^move\(\);$/],
-    codeLines: 1,
+    completedCode: "move();",
   },
   {
     level: 2,
@@ -48,8 +46,7 @@ export const levels: levelData[] = [
         TIP: Don't forget to add a <code>;</code> at the end of each line.
       </p>
     ),
-    regexTests: [/^move\(\);$/],
-    codeLines: 2,
+    completedCode: "move(); || move();",
   },
   {
     level: 3,
@@ -67,7 +64,6 @@ export const levels: levelData[] = [
         You have to set a value (parameter) in between the parenthesis, for example <code>move(2)</code>.
       </p>
     ),
-    regexTests: [/^move\(2\);$/],
-    codeLines: 1,
+    completedCode: "move(2);",
   },
 ];

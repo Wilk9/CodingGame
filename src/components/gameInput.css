@@ -1,0 +1,12 @@
+.editor {
+  text-align: left;
+}
+
+.editor-readonly {
+  opacity: 0.5;
+}
+
+.editor-submit {
+  margin: 1em 0;
+  width: 100%;
+}
