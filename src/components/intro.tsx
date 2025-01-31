@@ -12,8 +12,7 @@ export default function Intro(props: IntroProps) {
     startPosition: { x: 0, y: 0 },
     finishPosition: { x: 1, y: 1 },
     instructions: <></>,
-    regexTests: [],
-    codeLines: 0,
+    completedCode: "",
   };
 
   return (
