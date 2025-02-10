@@ -13,6 +13,7 @@ export default function Intro(props: IntroProps) {
     finishPosition: { x: 1, y: 1 },
     instructions: <></>,
     completedCode: "",
+    actions: [],
   };
 
   return (
@@ -27,6 +28,7 @@ export default function Intro(props: IntroProps) {
           <GameGrid
             levelData={introLevelData}
             currentPosition={{ x: 0, y: 0 }}
+            currentFacing={0}
             codeSubmitted={false}
             onFinishingAnimation={() => {}}
           />
