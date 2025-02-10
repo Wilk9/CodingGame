@@ -13,7 +13,7 @@ export type GameGridProps = {
 };
 
 export default function GameGrid(props: GameGridProps) {
-  const imageOffset = 7.5;
+  const [imageOffset, setImageOffset] = useState(10);
 
   const [imageWidth, setImageWidth] = useState(200);
   const [imageStartX, setImageStartX] = useState(imageOffset);
@@ -29,7 +29,10 @@ export default function GameGrid(props: GameGridProps) {
     if (myRef.current) {
       const grid = props.levelData.grid;
       const gridWidth = myRef.current.offsetWidth / grid.columns;
-      setImageWidth(myRef.current.offsetWidth / grid.columns - 30 / grid.columns);
+      const imageWidth = myRef.current.offsetWidth / grid.columns - 30 / grid.columns;
+      const imageOffset = (gridWidth - imageWidth )/ 2;
+      setImageWidth(imageWidth);
+      setImageOffset(imageOffset);
 
       if (
         props.levelData.startPosition.x == props.currentPosition.x &&
