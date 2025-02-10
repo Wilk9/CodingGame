@@ -1,13 +1,33 @@
 import { levelData } from "../data/levelData";
+import { result } from "./result";
 
-export default function move(steps: number, levelData: levelData, currentPosition: { x: number; y: number }) {
-  const newPosition = { x: currentPosition.x, y: currentPosition.y - steps };
-
-  if (!validateMove(newPosition, levelData)) {
-    return { valid: false, result: currentPosition };
+export default function move(
+  steps: number,
+  levelData: levelData,
+  currentPosition: { x: number; y: number },
+  currentFacing: number,
+): result {
+  let newPosition = { x: currentPosition.x, y: currentPosition.y - steps };
+  if (currentFacing == 90) {
+    newPosition = { x: currentPosition.x + steps, y: currentPosition.y };
+  }
+  if (currentFacing == -90) {
+    newPosition = { x: currentPosition.x - steps, y: currentPosition.y };
+  }
+  if (currentFacing == 180) {
+    newPosition = { x: currentPosition.x, y: currentPosition.y + steps };
   }
 
-  return { valid: true, result: newPosition };
+  if (!validateMove(newPosition, levelData)) {
+    return {
+      valid: false,
+      errorMessage: "You can't move there.",
+      position: currentPosition,
+      facing: currentFacing,
+    };
+  }
+
+  return { valid: true, errorMessage: "", position: newPosition, facing: currentFacing };
 }
 
 function validateMove(newPosition: { x: number; y: number }, levelData: levelData) {

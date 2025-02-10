@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import GameGrid from "./gameGrid";
 import "./level.css";
-import { levels } from "../data/levelData";
+import { levels, Move, Turn } from "../data/levelData";
 import move from "../gameMoves/move";
 import GameInput from "./gameInput";
+import turn from "../gameMoves/turn";
 
 interface LevelProps {
   level: number;
@@ -19,141 +20,71 @@ export default function Level(props: LevelProps) {
     x: levelData.startPosition.x,
     y: levelData.startPosition.y,
   });
-  const [codeLines, setCodeLines] = useState<string[]>([]);
+  const [currentFacing, setCurrentFacing] = useState(0);
+
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [codeSubmitted, setCodeSubmitted] = useState(false);
   const [animationIsRunning, setAnimationIsRunning] = useState(false);
-
-  const getParams = useCallback((line: string): string[] => {
-    const matches = line.match(/\(([^)]+)\)/g);
-
-    let paramString = undefined;
-    let params: string[] = [];
-    if (matches && matches.length > 0) {
-      paramString = matches[0];
-      paramString = paramString.replace(/[()]/g, "");
-
-      paramString = paramString.trim();
-      if (paramString.length > 0) {
-        params = paramString.split(",");
-      }
-    }
-
-    return params;
-  }, []);
-
-  const getSteps = useCallback((params: string[]) => {
-    if (params.length == 0) {
-      return 1;
-    }
-
-    const steps = Number(params[0]);
-    if (!isNaN(steps) && steps > 0) {
-      return steps;
-    }
-
-    setHasError(true);
-    setErrorMessage("You need to provide a number as parameter");
-
-    return -1;
-  }, []);
-
-  const movePlayer = useCallback(
-    (
-      line: string,
-      position: { x: number; y: number },
-      actions: {
-        type: "start" | "move";
-        steps: number;
-        position: { x: number; y: number };
-        hasError: boolean;
-        errorMessage: string | null;
-      }[],
-    ) => {
-      const params = getParams(line);
-      const steps = getSteps(params);
-
-      const moveResult = move(steps, levelData, position);
-      if (!moveResult.valid) {
-        actions.push({
-          type: "move",
-          steps: steps,
-          position: moveResult.result,
-          hasError: true,
-          errorMessage: "You can't move there.",
-        });
-
-        return;
-      }
-
-      let error = false;
-      let errorMessage: string | null = null;
-      const errorAction = actions.find((x) => x.hasError);
-      if (errorAction) {
-        error = true;
-        errorMessage = errorAction.errorMessage;
-      }
-
-      actions.push({
-        type: "move",
-        steps: steps,
-        position: moveResult.result,
-        hasError: error,
-        errorMessage: errorMessage,
-      });
-    },
-    [],
-  );
+  const [executedAnimationLine, setExecutedAnimationLine] = useState(-1);
 
   useEffect(() => {
     if (!codeSubmitted || animationIsRunning) {
       return;
     }
 
-    const executingCodeLines = codeLines;
-    const actions: {
-      type: "start" | "move";
-      steps: number;
-      position: { x: number; y: number };
-      hasError: boolean;
-      errorMessage: string | null;
-    }[] = [{ type: "start", steps: 0, position: currentPosition, hasError: false, errorMessage: null }];
+    if (levelData.actions.length == executedAnimationLine + 1) {
+      console.log("All grid actions are executed...");
+      return;
+    }
 
-    executingCodeLines.forEach((line) => {
-      if (line) {
-        if (/^move\([0-9]{0,2}\);$/.test(line)) {
-          movePlayer(line, actions[actions.length - 1].position, actions);
+    let errorMessage = "An error occurred.";
+    const actionToExecute = levelData.actions[executedAnimationLine + 1];
+    if (actionToExecute === undefined) {
+      console.error(`${errorMessage}: Action is undefined...`);
 
-          return;
-        }
+      return;
+    }
 
-        setHasError(true);
-        setErrorMessage("Invalid code line found: " + line + ";");
+    if (actionToExecute instanceof Move) {
+      const moveAction: Move = actionToExecute;
+      const actionResult = move(moveAction.params, levelData, currentPosition, currentFacing);
+      console.log("moving to", actionResult.position);
+
+      if (actionResult.valid) {
+        setCurrentPosition(actionResult.position);
+        setAnimationIsRunning(true);
+        setExecutedAnimationLine((x) => x + 1);
 
         return;
       }
-    });
 
-    actions.forEach((action, i) => {
-      if (action.type == "move") {
-        if (action.hasError) {
-          setHasError(true);
-          setErrorMessage(action.errorMessage || "An error occurred.");
-        }
+      errorMessage = actionResult.errorMessage;
+    }
 
-        if (actions[i + 1] !== undefined && actions[i + 1].type == "move") {
-          return;
-        }
+    if (actionToExecute instanceof Turn) {
+      const turnAction: Turn = actionToExecute;
+      const actionResult = turn(turnAction.params, 0);
 
-        setCurrentPosition(action.position);
+      if (actionResult.valid) {
+        console.log("turning", actionResult.facing);
+        setCurrentFacing(actionResult.facing);
         setAnimationIsRunning(true);
-      }
-    });
-  }, [codeLines, codeSubmitted, levelData, getParams, getSteps]);
+        setExecutedAnimationLine((x) => x + 1);
 
-  function setSubmittedCode(codeLines: string[]) {
-    setCodeLines(codeLines);
+        return;
+      }
+
+      errorMessage = actionResult.errorMessage;
+    }
+
+    setHasError(true);
+    setErrorMessage(errorMessage);
+
+    console.error(errorMessage);
+  }, [codeSubmitted, levelData, animationIsRunning, executedAnimationLine]);
+
+  function setSubmittedCode() {
     setCodeSubmitted(true);
   }
 
@@ -172,6 +103,7 @@ export default function Level(props: LevelProps) {
         <GameGrid
           levelData={levelData}
           currentPosition={currentPosition}
+          currentFacing={currentFacing}
           codeSubmitted={codeSubmitted}
           onFinishingAnimation={onFinishingAnimation}
         />

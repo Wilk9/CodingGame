@@ -11,7 +11,7 @@ interface GameInputProps {
   levelData: levelData;
   hasError: boolean;
   errorMessage: string | null;
-  setSubmittedCode: (submittedCode: string[]) => void;
+  setSubmittedCode: () => void;
 }
 
 export default function GameInput(props: GameInputProps) {
@@ -88,7 +88,7 @@ export default function GameInput(props: GameInputProps) {
       return;
     }
 
-    props.setSubmittedCode(codeLines);
+    props.setSubmittedCode();
   }, [codeSubmitted]);
 
   useEffect(() => {
@@ -202,9 +202,12 @@ export default function GameInput(props: GameInputProps) {
         });
       } else {
         const completedCodeLine = completedCodeLines[i - 1].trim();
+        let completedCodeLineOptions = completedCodeLine.split("//");
+        completedCodeLineOptions = completedCodeLineOptions.map((x) => x.trim());
+
         const contentTrimmed = content.trim();
 
-        if (completedCodeLine !== contentTrimmed) {
+        if (!completedCodeLineOptions.includes(contentTrimmed)) {
           for (let j = 0; j < completedCodeLine.length; j++) {
             if (completedCodeLine[j] !== contentTrimmed[j]) {
               markers.push({
