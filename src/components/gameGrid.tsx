@@ -13,9 +13,11 @@ export type GameGridProps = {
 };
 
 export default function GameGrid(props: GameGridProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
   const [imageOffset, setImageOffset] = useState(10);
 
   const [imageWidth, setImageWidth] = useState(200);
+  const [gridWidth, setGridWidth] = useState(200);
   const [imageStartX, setImageStartX] = useState(imageOffset);
   const [imageStartY, setImageStartY] = useState(imageOffset);
   const [facingDirection, setFacingDirection] = useState(0);
@@ -23,109 +25,105 @@ export default function GameGrid(props: GameGridProps) {
   const [movingAnimationRunning, setMovingAnimationRunning] = useState(false);
   const [turningAnimationRunning, setTurningAnimationRunning] = useState(false);
 
-  const myRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (myRef.current) {
-      const grid = props.levelData.grid;
-      const gridWidth = myRef.current.offsetWidth / grid.columns;
-      const imageWidth = myRef.current.offsetWidth / grid.columns - 30 / grid.columns;
-      const imageOffset = (gridWidth - imageWidth) / 2;
-      setImageWidth(imageWidth);
-      setImageOffset(imageOffset);
+    if (!gridRef.current) {
+      return;
+    }
 
-      if (
-        props.levelData.startPosition.x == props.currentPosition.x &&
-        props.levelData.startPosition.y == props.currentPosition.y
-      ) {
-        setImageStartX(props.currentPosition.x * gridWidth + imageOffset);
-        setImageStartY(props.currentPosition.y * gridWidth + imageOffset);
-        setFacingDirection(0);
+    if (isLoaded) {
+      return;
+    }
+    const grid = props.levelData.grid;
+    const gridWidth = gridRef.current.offsetWidth / grid.columns;
+    const imageWidth = gridRef.current.offsetWidth / grid.columns - 30 / grid.columns;
+    const imageOffset = (gridWidth - imageWidth) / 2;
 
-        return;
-      }
+    setGridWidth(gridWidth);
+    setImageWidth(imageWidth);
+    setImageOffset(imageOffset);
 
-      if (props.currentPosition.x > -1 && props.currentPosition.y > -1 && props.codeSubmitted) {
-        const destinationX = props.currentPosition.x * gridWidth + imageOffset;
-        const destinationY = props.currentPosition.y * gridWidth + imageOffset;
+    setImageStartX(props.levelData.startPosition.x * gridWidth + imageOffset);
+    setImageStartY(props.levelData.startPosition.y * gridWidth + imageOffset);
+    setFacingDirection(0);
 
-        if (!isMovedToDestination(imageStartX, imageStartY, destinationX, destinationY)) {
-          const stepsX = (imageStartX - destinationX) / 100;
-          const stepsY = (imageStartY - destinationY) / 100;
+    setIsLoaded(true);
+  }, []);
 
-          let currentX = imageStartX;
-          let currentY = imageStartY;
+  useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
 
-          setMovingAnimationRunning(true);
-          const interval = setInterval(() => {
-            if (isMovedToDestination(currentX, currentY, destinationX, destinationY)) {
-              clearInterval(interval);
+    if (props.currentPosition.x > -1 && props.currentPosition.y > -1 && props.codeSubmitted) {
+      const destinationX = props.currentPosition.x * gridWidth + imageOffset;
+      const destinationY = props.currentPosition.y * gridWidth + imageOffset;
 
-              setImageStartX(destinationX);
-              setImageStartY(destinationY);
-              setMovingAnimationRunning(false);
-            }
+      if (!isMovedToDestination(imageStartX, imageStartY, destinationX, destinationY)) {
+        const stepsX = (imageStartX - destinationX) / 100;
+        const stepsY = (imageStartY - destinationY) / 100;
 
-            currentX -= stepsX;
-            currentY -= stepsY;
+        let currentX = imageStartX;
+        let currentY = imageStartY;
 
-            setImageStartX(currentX);
-            setImageStartY(currentY);
-          }, 5);
-        }
-      }
+        setMovingAnimationRunning(true);
+        const interval = setInterval(() => {
+          if (isMovedToDestination(currentX, currentY, destinationX, destinationY)) {
+            clearInterval(interval);
 
-      if (props.currentFacing > -1 && props.codeSubmitted) {
-        const destinationFacing = props.currentFacing;
-
-        if (!isTurned(facingDirection, destinationFacing)) {
-          setTurningAnimationRunning(true);
-
-          let currentFacing = facingDirection;
-          let steps = 5;
-          if (destinationFacing < facingDirection) {
-            steps = -5;
+            setImageStartX(destinationX);
+            setImageStartY(destinationY);
+            setMovingAnimationRunning(false);
           }
 
-          const interval = setInterval(() => {
-            if (isTurned(currentFacing, destinationFacing)) {
-              clearInterval(interval);
+          currentX -= stepsX;
+          currentY -= stepsY;
 
-              setFacingDirection(destinationFacing);
-              setTurningAnimationRunning(false);
-            }
+          setImageStartX(currentX);
+          setImageStartY(currentY);
+        }, 5);
+      }
+    }
 
-            currentFacing += steps;
+    if (props.currentFacing > -1 && props.codeSubmitted) {
+      const destinationFacing = props.currentFacing;
 
-            if (!isTurned(currentFacing, destinationFacing)) {
-              setFacingDirection(currentFacing);
-            }
-          }, 10);
+      if (!isTurned(facingDirection, destinationFacing)) {
+        setTurningAnimationRunning(true);
+
+        let currentFacing = facingDirection;
+        let steps = 5;
+        if (destinationFacing < facingDirection) {
+          steps = -5;
         }
+
+        const interval = setInterval(() => {
+          if (isTurned(currentFacing, destinationFacing)) {
+            clearInterval(interval);
+
+            setFacingDirection(destinationFacing);
+            setTurningAnimationRunning(false);
+          }
+
+          currentFacing += steps;
+
+          if (!isTurned(currentFacing, destinationFacing)) {
+            setFacingDirection(currentFacing);
+          }
+        }, 10);
       }
     }
   }, [props]);
 
   useEffect(() => {
-    if (movingAnimationRunning || turningAnimationRunning) {
+    if (movingAnimationRunning || turningAnimationRunning || !isLoaded || !props.codeSubmitted) {
       return;
     }
 
-    if (!props.codeSubmitted) {
-      return;
-    }
-
-    if (myRef.current) {
-      const grid = props.levelData.grid;
-      const gridWidth = myRef.current.offsetWidth / grid.columns;
-
-      const destinationX = props.currentPosition.x * gridWidth + imageOffset;
-      const destinationY = props.currentPosition.y * gridWidth + imageOffset;
-
-      setImageStartX(destinationX);
-      setImageStartY(destinationY);
-      setFacingDirection(props.currentFacing);
-    }
+    setImageStartX(props.currentPosition.x * gridWidth + imageOffset);
+    setImageStartY(props.currentPosition.y * gridWidth + imageOffset);
+    setFacingDirection(props.currentFacing);
 
     setTimeout(() => {
       props.onFinishingAnimation();
@@ -165,12 +163,14 @@ export default function GameGrid(props: GameGridProps) {
   let i = 0;
   for (let row = 0; row < grid.rows; row++) {
     for (let column = 0; column < grid.columns; column++) {
+      const isCurrentPosition = isMatch(currentPosition, { x: column, y: row });
+
       cells.push(
         <GameCell
           key={i}
           allowed={isAllowedCell({ x: column, y: row })}
           isFinish={isMatch(finishPosition, { x: column, y: row })}
-          isCurrentPosition={isMatch(currentPosition, { x: column, y: row })}
+          isCurrentPosition={isCurrentPosition}
           walls={getWalls({ x: column, y: row })}
         />,
       );
@@ -192,7 +192,7 @@ export default function GameGrid(props: GameGridProps) {
           gridTemplateColumns: "repeat(" + grid.columns + ", 1fr)",
           maxWidth: grid.columns * 200 + "px",
         }}
-        ref={myRef}
+        ref={gridRef}
       >
         {cells}
         <img

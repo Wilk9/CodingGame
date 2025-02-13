@@ -34,22 +34,7 @@ export default function GameInput(props: GameInputProps) {
     if (monacoEditorRef.current) {
       monacoEditorRef.current.focus();
     }
-
-    document.addEventListener("keydown", handleSubmit);
-
-    return () => {
-      document.removeEventListener("keydown", handleSubmit);
-    };
   }, [props]);
-
-  function handleSubmit(event: KeyboardEvent) {
-    if (event.ctrlKey && event.key === "Enter") {
-      if (monacoEditorRef.current) {
-        event.preventDefault();
-        setCodeSubmitted(true);
-      }
-    }
-  }
 
   useEffect(() => {
     if (!codeSubmitted) {
@@ -126,6 +111,16 @@ export default function GameInput(props: GameInputProps) {
             monacoCarretPositionRef.current = e.selection;
           });
 
+          editor.onKeyUp((event) => {
+            if (event.ctrlKey && event.keyCode === monaco.KeyCode.Enter) {
+              console.log("Submit code");
+              event.preventDefault();
+              if (monacoEditorRef.current) {
+                setCodeSubmitted(true);
+              }
+            }
+          });
+
           validateEdits();
         }}
         className={classNames.join(" ")}
@@ -138,7 +133,7 @@ export default function GameInput(props: GameInputProps) {
           if (timeOutRef.current) {
             clearTimeout(timeOutRef.current);
           }
-          timeOutRef.current = setTimeout(() => validateEdits(), 200);
+          timeOutRef.current = setTimeout(() => validateEdits(), 500);
         }}
       />
       {hasError ? (
