@@ -6,6 +6,7 @@ export type GameCellProps = {
   allowed: boolean;
   isFinish: boolean;
   isCurrentPosition: boolean;
+  walls?: ["top" | "left" | "right" | "bottom"];
 };
 
 export default function GameCell(props: GameCellProps) {
@@ -47,6 +48,26 @@ export default function GameCell(props: GameCellProps) {
 
   if (props.isCurrentPosition) {
     classNames.push("grid-item-current-position");
+  }
+
+  if (props.walls) {
+    props.walls.forEach((wall) => {
+      if (wall === "top") {
+        classNames.push("grid-item-wall-top");
+      }
+
+      if (wall === "left") {
+        classNames.push("grid-item-wall-left");
+      }
+
+      if (wall === "bottom") {
+        classNames.push("grid-item-wall-bottom");
+      }
+
+      if (wall === "right") {
+        classNames.push("grid-item-wall-right");
+      }
+    });
   }
 
   const style = { height: gridItemHeight };

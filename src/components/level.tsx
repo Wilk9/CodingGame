@@ -34,7 +34,6 @@ export default function Level(props: LevelProps) {
     }
 
     if (levelData.actions.length == executedAnimationLine + 1) {
-      console.log("All grid actions are executed...");
       return;
     }
 
@@ -49,7 +48,6 @@ export default function Level(props: LevelProps) {
     if (actionToExecute instanceof Move) {
       const moveAction: Move = actionToExecute;
       const actionResult = move(moveAction.params, levelData, currentPosition, currentFacing);
-      console.log("moving to", actionResult.position);
 
       if (actionResult.valid) {
         setCurrentPosition(actionResult.position);
@@ -64,10 +62,9 @@ export default function Level(props: LevelProps) {
 
     if (actionToExecute instanceof Turn) {
       const turnAction: Turn = actionToExecute;
-      const actionResult = turn(turnAction.params, 0);
+      const actionResult = turn(turnAction.params, currentFacing);
 
       if (actionResult.valid) {
-        console.log("turning", actionResult.facing);
         setCurrentFacing(actionResult.facing);
         setAnimationIsRunning(true);
         setExecutedAnimationLine((x) => x + 1);

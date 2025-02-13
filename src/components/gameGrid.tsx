@@ -30,7 +30,7 @@ export default function GameGrid(props: GameGridProps) {
       const grid = props.levelData.grid;
       const gridWidth = myRef.current.offsetWidth / grid.columns;
       const imageWidth = myRef.current.offsetWidth / grid.columns - 30 / grid.columns;
-      const imageOffset = (gridWidth - imageWidth )/ 2;
+      const imageOffset = (gridWidth - imageWidth) / 2;
       setImageWidth(imageWidth);
       setImageOffset(imageOffset);
 
@@ -64,8 +64,6 @@ export default function GameGrid(props: GameGridProps) {
               setImageStartX(destinationX);
               setImageStartY(destinationY);
               setMovingAnimationRunning(false);
-
-              console.log("finished moving animation");
             }
 
             currentX -= stepsX;
@@ -95,8 +93,6 @@ export default function GameGrid(props: GameGridProps) {
 
               setFacingDirection(destinationFacing);
               setTurningAnimationRunning(false);
-
-              console.log("finished turning animation");
             }
 
             currentFacing += steps;
@@ -122,7 +118,7 @@ export default function GameGrid(props: GameGridProps) {
     if (myRef.current) {
       const grid = props.levelData.grid;
       const gridWidth = myRef.current.offsetWidth / grid.columns;
-      
+
       const destinationX = props.currentPosition.x * gridWidth + imageOffset;
       const destinationY = props.currentPosition.y * gridWidth + imageOffset;
 
@@ -175,6 +171,7 @@ export default function GameGrid(props: GameGridProps) {
           allowed={isAllowedCell({ x: column, y: row })}
           isFinish={isMatch(finishPosition, { x: column, y: row })}
           isCurrentPosition={isMatch(currentPosition, { x: column, y: row })}
+          walls={getWalls({ x: column, y: row })}
         />,
       );
       i++;
@@ -182,28 +179,36 @@ export default function GameGrid(props: GameGridProps) {
   }
 
   return (
-    <div
-      className="grid-container"
-      style={{
-        gridTemplateColumns: "repeat(" + grid.columns + ", 1fr)",
-        maxWidth: grid.columns * 200 + "px",
-      }}
-      ref={myRef}
-    >
-      {cells}
-      <img
-        id="grid-image"
-        src={image}
+    <>
+      <style>
+        {grid.columns == 1 ? ".grid-item:nth-child(odd) {  background-color: rgba(255, 255, 255, 0.1);}" : ""}
+        {grid.columns == 2
+          ? ".grid-item:nth-child(4n), .grid-item:nth-child(4n+1) {  background-color: rgba(255, 255, 255, 0.1);}"
+          : ""}
+      </style>
+      <div
+        className="grid-container"
         style={{
-          position: "absolute",
-          top: imageStartY,
-          left: imageStartX,
-          zIndex: 1,
-          width: imageWidth,
-          rotate: `${facingDirection}deg`,
+          gridTemplateColumns: "repeat(" + grid.columns + ", 1fr)",
+          maxWidth: grid.columns * 200 + "px",
         }}
-      />
-    </div>
+        ref={myRef}
+      >
+        {cells}
+        <img
+          id="grid-image"
+          src={image}
+          style={{
+            position: "absolute",
+            top: imageStartY,
+            left: imageStartX,
+            zIndex: 1,
+            width: imageWidth,
+            rotate: `${facingDirection}deg`,
+          }}
+        />
+      </div>
+    </>
   );
 
   function isMatch(position1: { x: number; y: number }, position2: { x: number; y: number }) {
@@ -212,5 +217,14 @@ export default function GameGrid(props: GameGridProps) {
 
   function isAllowedCell(position: { x: number; y: number }) {
     return props.levelData.allowedCells.some((cell) => isMatch(cell, position));
+  }
+
+  function getWalls(position: { x: number; y: number }) {
+    if (!props.levelData.walls) {
+      return undefined;
+    }
+
+    const wallObject = props.levelData.walls.find((wallObject) => isMatch(wallObject.cell, position));
+    return wallObject ? wallObject.side : undefined;
   }
 }
