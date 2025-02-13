@@ -23,6 +23,7 @@ export class Turn implements IAction {
 export type levelData = {
   level: number;
   grid: { columns: number; rows: number };
+  walls?: { cell: { x: number; y: number }; side: ["top" | "left" | "right" | "bottom"] }[];
   allowedCells: { x: number; y: number }[];
   startPosition: { x: number; y: number };
   finishPosition: { x: number; y: number };
@@ -109,5 +110,33 @@ export const levels: levelData[] = [
     ),
     completedCode: 'move(2); || turn("right"); || move(); // move(1);',
     actions: [new Move(2), new Turn(90), new Move(1)],
+  },
+  {
+    level: 5,
+    grid: { columns: 2, rows: 3 },
+    allowedCells: [
+      { x: 0, y: 0 },
+      { x: 0, y: 1 },
+      { x: 0, y: 2 },
+      { x: 1, y: 0 },
+      { x: 1, y: 1 },
+      { x: 1, y: 2 },
+    ],
+    walls: [
+      { cell: { x: 0, y: 2 }, side: ["right"] },
+      { cell: { x: 0, y: 1 }, side: ["right"] },
+      { cell: { x: 1, y: 2 }, side: ["left"] },
+      { cell: { x: 1, y: 1 }, side: ["left"] },
+    ],
+    startPosition: { x: 0, y: 2 },
+    finishPosition: { x: 1, y: 2 },
+    instructions: (
+      <p>
+        You can also move 2 places forward, typing the <code>move</code> function one time. <br />
+        You have to set a value (parameter) in between the parenthesis, for example <code>move(2)</code>.
+      </p>
+    ),
+    completedCode: 'move(2); || turn("right"); || move(); // move(1); || turn("right"); || move(2);',
+    actions: [new Move(2), new Turn(90), new Move(1), new Turn(90), new Move(2)],
   },
 ];

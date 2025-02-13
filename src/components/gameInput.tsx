@@ -191,7 +191,6 @@ export default function GameInput(props: GameInputProps) {
       }
 
       if (!completedCodeLines[i - 1]) {
-        console.log("completedCodeLines[i -1] undefined");
         markers.push({
           message: "invalid line",
           severity: monaco.MarkerSeverity.Error,

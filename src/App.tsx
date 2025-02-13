@@ -7,7 +7,7 @@ import { levels } from "./data/levelData";
 import CompletedLevel from "./components/completedLevel";
 
 export default function App() {
-  const [level, setLevel] = useState(1);
+  const [level, setLevel] = useState(5);
   const [levelChanged, setLevelChanged] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [hasCompletedGame, setHasCompletedGame] = useState(false);
