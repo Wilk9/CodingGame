@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { levelData } from "../data/levelData";
 import ErrorMessage from "./errorMessage";
 import MonacoEditor, { EditorConstructionOptions, monaco } from "react-monaco-editor";
-import { editor } from "monaco-editor";
+import { editor, MarkerSeverity } from "monaco-editor";
 
 import "./gameInput.css";
 
@@ -24,6 +24,7 @@ export default function GameInput(props: GameInputProps) {
   const [completedCodeLinesLength, setCompletedCodeLinesLength] = useState(0);
 
   const monacoEditorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const monacoCarretPositionRef = useRef<monaco.Selection>(null);
   const timeOutRef = useRef(0);
 
   useEffect(() => {
@@ -121,6 +122,10 @@ export default function GameInput(props: GameInputProps) {
       <MonacoEditor
         editorDidMount={(editor) => {
           monacoEditorRef.current = editor;
+          editor.onDidChangeCursorSelection((e) => {
+            monacoCarretPositionRef.current = e.selection;
+          });
+
           validateEdits();
         }}
         className={classNames.join(" ")}
@@ -133,7 +138,7 @@ export default function GameInput(props: GameInputProps) {
           if (timeOutRef.current) {
             clearTimeout(timeOutRef.current);
           }
-          timeOutRef.current = setTimeout(() => validateEdits(), 1000);
+          timeOutRef.current = setTimeout(() => validateEdits(), 200);
         }}
       />
       {hasError ? (
@@ -179,6 +184,18 @@ export default function GameInput(props: GameInputProps) {
         continue;
       }
 
+      // Skip the editing line if it is not completed
+      const editingLine = monacoCarretPositionRef.current?.positionLineNumber;
+      if (
+        i === editingLine &&
+        !content.includes(";") &&
+        monaco.editor
+          .getModelMarkers({ owner: "owner" })
+          .filter((x) => x.startLineNumber == i && MarkerSeverity.Error == x.severity).length == 0
+      ) {
+        continue;
+      }
+
       if (content.length > 1 && !content.endsWith(";")) {
         markers.push({
           message: "; expected",
@@ -186,7 +203,7 @@ export default function GameInput(props: GameInputProps) {
           startLineNumber: range.startLineNumber,
           startColumn: range.endColumn,
           endLineNumber: range.endLineNumber,
-          endColumn: range.endColumn + 1,
+          endColumn: content.length + 1,
         });
       }
 
@@ -197,7 +214,7 @@ export default function GameInput(props: GameInputProps) {
           startLineNumber: range.startLineNumber,
           startColumn: range.startColumn,
           endLineNumber: range.endLineNumber,
-          endColumn: range.endColumn,
+          endColumn: content.length,
         });
       } else {
         const completedCodeLine = completedCodeLines[i - 1].trim();
@@ -224,7 +241,7 @@ export default function GameInput(props: GameInputProps) {
                 startLineNumber: range.startLineNumber,
                 startColumn: range.startColumn,
                 endLineNumber: range.endLineNumber,
-                endColumn: range.endColumn,
+                endColumn: content.length,
               });
               break;
             }
