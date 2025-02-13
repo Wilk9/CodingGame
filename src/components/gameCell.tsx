@@ -11,24 +11,24 @@ export type GameCellProps = {
 
 export default function GameCell(props: GameCellProps) {
   const [gridItemHeight, setGridItemHeight] = useState(0);
-  const observedGridItem = useRef<HTMLDivElement>(null);
+  const observedGridItemRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!observedGridItem.current) {
+    if (!observedGridItemRef.current) {
       return;
     }
 
     const resizeObserver = new ResizeObserver(() => {
-      if (!observedGridItem.current) {
+      if (!observedGridItemRef.current) {
         return;
       }
 
-      if (observedGridItem.current.offsetWidth !== gridItemHeight) {
-        setGridItemHeight(observedGridItem.current.offsetWidth);
+      if (observedGridItemRef.current.offsetWidth !== gridItemHeight) {
+        setGridItemHeight(observedGridItemRef.current.offsetWidth);
       }
     });
 
-    resizeObserver.observe(observedGridItem.current);
+    resizeObserver.observe(observedGridItemRef.current);
 
     return function cleanup() {
       resizeObserver.disconnect();
@@ -73,7 +73,7 @@ export default function GameCell(props: GameCellProps) {
   const style = { height: gridItemHeight };
 
   return (
-    <div className={classNames.join(" ")} style={style} ref={observedGridItem}>
+    <div className={classNames.join(" ")} style={style} ref={observedGridItemRef}>
       {props.isFinish ? (
         <div className="grid-item-content">
           <h2>Finish</h2>
