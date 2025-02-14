@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, useEffect, useMemo, useState } from "react";
 import GameGrid from "./gameGrid";
-import "./level.css";
 import { levels, Move, Turn } from "../data/levelData";
 import move from "../gameMoves/move";
-import GameInput from "./gameInput";
 import turn from "../gameMoves/turn";
+
+const GameInput = lazy(() => import("./gameInput"));
 
 interface LevelProps {
   level: number;
