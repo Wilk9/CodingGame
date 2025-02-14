@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { lazy, useState } from "react";
 import "./App.css";
-import Level from "./components/level";
-import Intro from "./components/intro";
-import CompletedGame from "./components/completedGame";
+
 import { levels } from "./data/levelData";
-import CompletedLevel from "./components/completedLevel";
+
+const Level = lazy(() => import("./components/level"));
+const Intro = lazy(() => import("./components/intro"));
+const CompletedGame = lazy(() => import("./components/completedGame"));
+const CompletedLevel = lazy(() => import("./components/completedLevel"));
 
 export default function App() {
   const [level, setLevel] = useState(1);
